@@ -1,7 +1,7 @@
 using Toybox.Graphics as Graphics;
 using Toybox.WatchUi as WatchUi;
 
-class HelloWristView extends WatchUi.View {
+class WhiskerLinkView extends WatchUi.View {
     function initialize() {
         View.initialize();
     }
@@ -17,7 +17,7 @@ class HelloWristView extends WatchUi.View {
             cx,
             cy - 12,
             Graphics.FONT_MEDIUM,
-            "Hello Wrist",
+            "WhiskerLink",
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
@@ -25,7 +25,7 @@ class HelloWristView extends WatchUi.View {
             cx,
             cy + 14,
             Graphics.FONT_TINY,
-            "Instinct 2",
+            "Ready",
             Graphics.TEXT_JUSTIFY_CENTER
         );
     }

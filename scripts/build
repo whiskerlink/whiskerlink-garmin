@@ -28,9 +28,9 @@ mkdir -p bin
 monkeyc \
     -f monkey.jungle \
     -d "$CIQ_DEVICE" \
-    -o bin/GarminConnectTemplate.prg \
+    -o bin/WhiskerLink.prg \
     -y "$DEV_KEY" \
     -w
 
 echo
-echo "Built: bin/GarminConnectTemplate.prg"
+echo "Built: bin/WhiskerLink.prg"

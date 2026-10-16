@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
     <iq:application
-        id="c713af04b851435a93aca10a37d381d2"
+        id="037e943394f64a709bc589e1cc651b7f"
         type="watch-app"
         name="@Strings.AppName"
-        entry="GarminConnectTemplateApp"
+        entry="WhiskerLinkApp"
         launcherIcon="@Drawables.LauncherIcon"
         minSdkVersion="3.4.0"
         version="0.1.0">

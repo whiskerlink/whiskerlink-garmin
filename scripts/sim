@@ -15,4 +15,4 @@ fi
 simulator >/dev/null 2>&1 &
 sleep 2
 
-exec monkeydo bin/GarminConnectTemplate.prg "$CIQ_DEVICE"
+exec monkeydo bin/WhiskerLink.prg "$CIQ_DEVICE"
