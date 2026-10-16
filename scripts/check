@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+source ./scripts/env.sh
+
+echo "Project:       $ROOT"
+echo "Device:        $CIQ_DEVICE"
+echo "Developer key: $DEV_KEY"
+echo
+
+for cmd in java connect-iq-sdk-manager monkeyc monkeydo simulator; do
+    printf "%-24s " "$cmd"
+    if command -v "$cmd" >/dev/null 2>&1; then
+        command -v "$cmd"
+    else
+        echo "MISSING"
+    fi
+done
+
+printf "%-24s " "key"
+if [ -f "$DEV_KEY" ]; then
+    echo "OK"
+else
+    echo "MISSING (run ./scripts/generate-key)"
+fi
+
+echo
+if [ -n "${CIQ_SDK:-}" ]; then
+    echo "CIQ_SDK=$CIQ_SDK"
+
+    if [ -f "$CIQ_SDK/bin/monkeyc" ]; then
+        printf "%-24s %s\n" "monkeyc shebang" "$(head -n1 "$CIQ_SDK/bin/monkeyc")"
+    fi
+fi

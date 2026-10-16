@@ -1,0 +1,14 @@
+bin/*
+!bin/.gitkeep
+
+.secrets/*
+!.secrets/.gitkeep
+
+.direnv/
+.env
+result
+*.prg
+*.iq
+*.der
+*.pem
+developer_key

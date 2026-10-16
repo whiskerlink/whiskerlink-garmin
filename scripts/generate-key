@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+mkdir -p "$ROOT/.secrets"
+
+PEM="$ROOT/.secrets/developer_key.pem"
+DER="$ROOT/.secrets/developer_key"
+
+if [ -e "$DER" ] || [ -e "$PEM" ]; then
+    echo "A developer key already exists in .secrets/"
+    exit 1
+fi
+
+openssl genrsa -out "$PEM" 4096
+openssl pkcs8 \
+    -topk8 \
+    -inform PEM \
+    -outform DER \
+    -in "$PEM" \
+    -out "$DER" \
+    -nocrypt
+
+chmod 600 "$PEM" "$DER"
+
+echo "Created:"
+echo "  $DER"
+echo
+echo "Back this key up. Do not commit it."

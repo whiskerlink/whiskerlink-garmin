@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v connect-iq-sdk-manager >/dev/null 2>&1; then
+    echo "connect-iq-sdk-manager is not installed."
+    echo "Run: ./scripts/install-sdk-manager-cli"
+    exit 1
+fi
+
+mkdir -p "$HOME/.Garmin/ConnectIQ/Sdks"
+
+cat <<'EOF'
+Garmin SDK setup flow:
+
+  connect-iq-sdk-manager agreement view
+  connect-iq-sdk-manager agreement accept
+  connect-iq-sdk-manager login
+  connect-iq-sdk-manager sdk list
+  connect-iq-sdk-manager sdk set <version>
+  connect-iq-sdk-manager device download --manifest=manifest.xml --include-fonts
+
+Then re-enter:
+
+  exit
+  nix develop
+
+Finally patch Garmin's /bin/bash launcher scripts for NixOS:
+
+  ./scripts/patch-sdk
+EOF

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+INSTALL_DIR="$HOME/.local/bin"
+FINAL="$INSTALL_DIR/connect-iq-sdk-manager"
+
+mkdir -p "$INSTALL_DIR"
+mkdir -p "$HOME/.Garmin/ConnectIQ/Sdks"
+
+if [ -x "$FINAL" ]; then
+    echo "connect-iq-sdk-manager is already installed:"
+    echo "  $FINAL"
+    "$FINAL" --help >/dev/null
+    echo "Installation verified."
+    echo "Garmin SDK directory ready:"
+    echo "  $HOME/.Garmin/ConnectIQ/Sdks"
+    exit 0
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+echo "Building connect-iq-sdk-manager..."
+echo
+
+GOBIN="$TMP" \
+    go install github.com/lindell/connect-iq-sdk-manager-cli@latest
+
+BUILT="$TMP/connect-iq-sdk-manager-cli"
+
+if [ ! -x "$BUILT" ]; then
+    echo "Expected Go to produce:"
+    echo "  $BUILT"
+    echo
+    echo "Temporary build directory:"
+    ls -la "$TMP"
+    exit 1
+fi
+
+install -m 0755 "$BUILT" "$FINAL"
+
+"$FINAL" --help >/dev/null
+
+echo
+echo "Installation verified."
+echo "Installed:"
+echo "  $FINAL"
+echo "Garmin SDK directory ready:"
+echo "  $HOME/.Garmin/ConnectIQ/Sdks"

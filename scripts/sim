@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+source ./scripts/env.sh
+
+./scripts/build
+
+if ! command -v simulator >/dev/null 2>&1; then
+    echo "Garmin simulator executable not found."
+    exit 1
+fi
+
+simulator >/dev/null 2>&1 &
+sleep 2
+
+exec monkeydo bin/GarminConnectTemplate.prg "$CIQ_DEVICE"

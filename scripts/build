@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+source ./scripts/env.sh
+
+if ! command -v monkeyc >/dev/null 2>&1; then
+    echo "monkeyc not found."
+    echo "Finish SDK setup first, then re-enter nix develop."
+    exit 1
+fi
+
+if [ "$(head -n1 "$(command -v monkeyc)" 2>/dev/null || true)" = "#!/bin/bash" ]; then
+    echo "Garmin's monkeyc still uses #!/bin/bash, which does not exist on NixOS."
+    echo "Run: ./scripts/patch-sdk"
+    exit 1
+fi
+
+if [ ! -f "$DEV_KEY" ]; then
+    echo "Developer key missing: $DEV_KEY"
+    echo "Run: ./scripts/generate-key"
+    exit 1
+fi
+
+mkdir -p bin
+
+monkeyc \
+    -f monkey.jungle \
+    -d "$CIQ_DEVICE" \
+    -o bin/GarminConnectTemplate.prg \
+    -y "$DEV_KEY" \
+    -w
+
+echo
+echo "Built: bin/GarminConnectTemplate.prg"

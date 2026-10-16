@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+source ./scripts/env.sh
+
+if [ -z "${CIQ_SDK:-}" ] || [ ! -d "$CIQ_SDK/bin" ]; then
+    echo "No active Garmin SDK found."
+    echo "Install/select an SDK first, then re-enter nix develop."
+    exit 1
+fi
+
+BASH_PATH="$(command -v bash)"
+PATCHED=0
+
+for name in monkeyc monkeydo simulator; do
+    file="$CIQ_SDK/bin/$name"
+
+    if [ ! -f "$file" ]; then
+        continue
+    fi
+
+    first="$(head -n1 "$file" || true)"
+
+    if [ "$first" = "#!/bin/bash" ]; then
+        {
+            printf '#!%s\n' "$BASH_PATH"
+            tail -n +2 "$file"
+        } > "$file.tmp"
+        chmod --reference="$file" "$file.tmp"
+        mv "$file.tmp" "$file"
+        echo "Patched $name -> $BASH_PATH"
+        PATCHED=1
+    fi
+done
+
+if [ "$PATCHED" -eq 0 ]; then
+    echo "Garmin SDK launcher scripts already look NixOS-compatible."
+fi
