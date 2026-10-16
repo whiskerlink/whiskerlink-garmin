@@ -36,6 +36,9 @@ class WhiskerLinkApp extends Application.AppBase {
     }
 
     function getInitialView() {
-        return [ new WhiskerLinkView(_model) ];
+        return [
+            new WhiskerLinkView(_model),
+            new WhiskerLinkDelegate(_scanner)
+        ];
     }
 }

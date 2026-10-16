@@ -3,13 +3,67 @@ using Toybox.WatchUi as WatchUi;
 
 class BleScanner extends Ble.BleDelegate {
     var _model;
+    var _pairing = false;
+    var _testo = null;
+
+    var _uuidFff0;
+    var _uuidFff1;
+    var _uuidFff2;
+    var _uuid5a90;
 
     function initialize(model) {
         BleDelegate.initialize();
+
         _model = model;
+
+        _uuidFff0 = Ble.stringToUuid(
+            "0000fff0-0000-1000-8000-00805f9b34fb"
+        );
+
+        _uuidFff1 = Ble.stringToUuid(
+            "0000fff1-0000-1000-8000-00805f9b34fb"
+        );
+
+        _uuidFff2 = Ble.stringToUuid(
+            "0000fff2-0000-1000-8000-00805f9b34fb"
+        );
+
+        _uuid5a90 = Ble.stringToUuid(
+            "00005a90-0000-1000-8000-00805f9b34fb"
+        );
+
+        registerTestoProfile();
+    }
+
+    function zeroPressure() {
+        if (_testo != null) {
+            _testo.zeroPressure();
+        }
+    }
+
+    function registerTestoProfile() {
+        var profile = {
+            :uuid => _uuidFff0,
+            :characteristics => [
+                {
+                    :uuid => _uuidFff1
+                },
+                {
+                    :uuid => _uuidFff2,
+                    :descriptors => [
+                        Ble.cccdUuid()
+                    ]
+                }
+            ]
+        };
+
+        Ble.registerProfile(profile);
     }
 
     function start() {
+        _pairing = false;
+        _testo = null;
+
         _model.status = "Scanning...";
         _model.deviceName = null;
         _model.rssi = null;
@@ -26,11 +80,18 @@ class BleScanner extends Ble.BleDelegate {
         Ble.setScanState(Ble.SCAN_STATE_OFF);
     }
 
+    function onProfileRegister(uuid, status) {
+        if (status != Ble.STATUS_SUCCESS) {
+            _model.status = "Profile err " + status;
+            WatchUi.requestUpdate();
+        }
+    }
+
     function onScanStateChange(scanState, status) {
         if (status == Ble.STATUS_SUCCESS) {
             if (scanState == Ble.SCAN_STATE_SCANNING) {
                 _model.status = "Scan ON";
-            } else {
+            } else if (!_pairing) {
                 _model.status = "Scan OFF";
             }
         } else {
@@ -55,70 +116,96 @@ class BleScanner extends Ble.BleDelegate {
     }
 
     function inspectResult(result) {
-        var name = result.getDeviceName();
-        var rssi = result.getRssi();
-
-        // Named devices are useful for diagnostics.
-        if (name != null) {
-            _model.status = "Named BLE";
-            _model.deviceName = name;
-            _model.rssi = rssi;
-            _model.raw = bytesToHex(result.getRawData());
-            _model.serviceUuid = firstServiceUuid(result);
+        if (_pairing) {
             return;
         }
 
-        // For nameless devices, keep the strongest one seen.
-        if (_model.rssi == null || rssi > _model.rssi) {
-            _model.status = "Nameless BLE";
-            _model.deviceName = null;
-            _model.rssi = rssi;
-            _model.raw = bytesToHex(result.getRawData());
-            _model.serviceUuid = firstServiceUuid(result);
+        if (!isTestoAdvertisement(result)) {
+            return;
+        }
+
+        _pairing = true;
+
+        _model.status = "Testo found";
+        _model.rssi = result.getRssi();
+        _model.serviceUuid = null;
+        _model.raw = null;
+        _model.deviceName = null;
+
+        Ble.setScanState(Ble.SCAN_STATE_OFF);
+
+        _model.status = "Connecting...";
+        WatchUi.requestUpdate();
+
+        var device = Ble.pairDevice(result);
+
+        if (device == null) {
+            _pairing = false;
+            _model.status = "Pair failed";
+            WatchUi.requestUpdate();
         }
     }
 
-    function firstServiceUuid(result) {
+    function isTestoAdvertisement(result) {
         var uuids = result.getServiceUuids();
         var item = uuids.next();
 
-        if (item != null) {
-            return item.toString();
-        }
-
-        return null;
-    }
-
-    function bytesToHex(data) {
-        if (data == null) {
-            return "";
-        }
-
-        var s = "";
-        var limit = data.size();
-
-        if (limit > 12) {
-            limit = 12;
-        }
-
-        for (var i = 0; i < limit; i += 1) {
-            if (i > 0) {
-                s += " ";
+        while (item != null) {
+            if (item.equals(_uuidFff0) || item.equals(_uuid5a90)) {
+                return true;
             }
 
-            s += byteToHex(data[i]);
+            item = uuids.next();
         }
 
-        return s;
+        return false;
     }
 
-    function byteToHex(value) {
-        var digits = "0123456789ABCDEF";
+    function onConnectedStateChanged(device, state) {
+        if (state == Ble.CONNECTION_STATE_CONNECTED) {
+            _model.status = "Connected";
+            WatchUi.requestUpdate();
 
-        var hi = (value >> 4) & 0x0F;
-        var lo = value & 0x0F;
+            _testo = new TestoDevice(
+                device,
+                _model,
+                _uuidFff0,
+                _uuidFff1,
+                _uuidFff2
+            );
 
-        return digits.substring(hi, hi + 1)
-             + digits.substring(lo, lo + 1);
+            _testo.start();
+            return;
+        }
+
+        if (state == Ble.CONNECTION_STATE_DISCONNECTED) {
+            _pairing = false;
+            _testo = null;
+
+            _model.status = "Disconnected";
+            _model.deviceName = null;
+            _model.raw = null;
+            _model.serviceUuid = null;
+
+            WatchUi.requestUpdate();
+        }
+    }
+
+    function onDescriptorWrite(descriptor, status) {
+        if (_testo != null) {
+            _testo.onDescriptorWrite(descriptor, status);
+        }
+    }
+
+    function onCharacteristicWrite(characteristic, status) {
+        if (_testo != null) {
+            _testo.onCharacteristicWrite(characteristic, status);
+        }
+    }
+
+    function onCharacteristicChanged(characteristic, value) {
+        if (_testo != null) {
+            _testo.onCharacteristicChanged(characteristic, value);
+        }
     }
 }
