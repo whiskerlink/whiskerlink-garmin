@@ -1,149 +1,67 @@
-# garmin-connect-template
+# WhiskerLink Garmin
 
-A NixOS-friendly Garmin Connect IQ / Monkey C starter project.
+**WhiskerLink for Garmin** is an unofficial Connect IQ client for Bluetooth HVAC instruments.
 
-This template targets the **Garmin Instinct 2 / Solar** and builds a tiny
-`Hello Wrist` watch app.
+Right now, it lets a **Garmin Instinct 2** talk directly to a **Testo 549i** pressure probe over BLE, without the official phone app.
 
-It intentionally avoids Garmin's GUI SDK Manager. On NixOS the GUI's old
-GTK/WebKit dependencies are unnecessarily painful. Instead this template uses
-the community `connect-iq-sdk-manager` CLI.
+## Current support
 
-## 1. Enter the development shell
+- Garmin Instinct 2 / Instinct 2 Solar
+- Testo 549i
+- Live pressure in psi
+- Saturation temperature
+- Dew and bubble temperatures where applicable
+- R-404A, R-410A, R-22, R-134a, and R-290
+- Zeroing from the watch
+- Firmware, battery, and RSSI info
 
-```bash
-nix develop
+WhiskerLink is still early software and currently supports one probe at a time.
+
+## Documentation
+
+- [How to use WhiskerLink](docs/how-to-use.md)
+- [How it works](docs/how-it-works.md)
+- [Known quirks](docs/known-quirks.md)
+- [Testo protocol documentation](https://github.com/whiskerlink/protocols)
+
+## Building
+
+You need the Garmin **Connect IQ SDK** and a developer signing key.
+
+WhiskerLink is written in **Monkey C** and currently targets `instinct2`.
+
+```sh
+monkeyc \
+  -f monkey.jungle \
+  -o bin/WhiskerLink.prg \
+  -y /path/to/developer_key \
+  -d instinct2
 ```
 
-## 2. Install the SDK manager CLI
+### NixOS
 
-```bash
-./scripts/install-sdk-manager-cli
-```
+The Connect IQ SDK includes Linux launcher scripts that may assume `/bin/bash`. On NixOS, their shebangs may need to be patched before the SDK tools will run normally.
 
-This installs:
+## Installation
+
+Connect the watch over USB and copy the built file to:
 
 ```text
-~/.local/bin/connect-iq-sdk-manager
+GARMIN/APPS/WhiskerLink.prg
 ```
 
-and creates Garmin's expected SDK directory:
+Disconnect the watch, then launch WhiskerLink from the app list.
 
-```text
-~/.Garmin/ConnectIQ/Sdks
-```
+## Project
 
-Re-enter the shell:
+WhiskerLink is about making useful hardware usable outside its vendor's preferred software stack.
 
-```bash
-exit
-nix develop
-```
+The broader project aims to provide open protocol documentation and clients for platforms including Garmin, Linux, and Android.
 
-## 3. Install/select the Garmin SDK
+## Disclaimer
 
-Read Garmin's agreement:
+WhiskerLink is an independent project and is not affiliated with or endorsed by Testo or Garmin.
 
-```bash
-connect-iq-sdk-manager agreement view
-```
+It is experimental software. Verify important HVAC and refrigeration measurements with appropriate instruments and use professional judgment in the field.
 
-If you accept it:
-
-```bash
-connect-iq-sdk-manager agreement accept
-connect-iq-sdk-manager login
-```
-
-List SDKs:
-
-```bash
-connect-iq-sdk-manager sdk list
-```
-
-Select/install one, for example:
-
-```bash
-connect-iq-sdk-manager sdk set 9.2.0
-```
-
-Download device support referenced by `manifest.xml`:
-
-```bash
-connect-iq-sdk-manager device download \
-  --manifest=manifest.xml \
-  --include-fonts
-```
-
-Then:
-
-```bash
-exit
-nix develop
-```
-
-## 4. Patch Garmin's launcher scripts for NixOS
-
-Garmin's Linux SDK uses `#!/bin/bash`, but NixOS does not provide `/bin/bash`.
-
-Run once per newly installed SDK:
-
-```bash
-./scripts/patch-sdk
-```
-
-## 5. Generate a developer key
-
-```bash
-./scripts/generate-key
-```
-
-The key is stored under `.secrets/` and ignored by Git.
-
-Back it up somewhere safe.
-
-## 6. Check the environment
-
-```bash
-./scripts/check
-```
-
-You want Java, the SDK manager, `monkeyc`, `monkeydo`, `simulator`, and the
-developer key all present.
-
-## 7. Build
-
-```bash
-./scripts/build
-```
-
-Output:
-
-```text
-bin/GarminConnectTemplate.prg
-```
-
-## 8. Sideload
-
-Connect the watch, choose **Use Mass Storage? → Yes**, and copy:
-
-```text
-bin/GarminConnectTemplate.prg
-```
-
-to:
-
-```text
-GARMIN/APPS/
-```
-
-Then eject/disconnect the watch and launch **Garmin Connect Template**.
-
-## Template details
-
-- Device target: `instinct2`
-- Minimum Connect IQ API: `3.4.0`
-- Launcher icon: 62×62, matching Instinct 2
-- `BluetoothLowEnergy` permission is already enabled
-- SDK binaries and device data stay outside the Git repository
-- `flake.lock` should be committed after the first `nix develop`
+WhiskerLink was written with AI assistance.
