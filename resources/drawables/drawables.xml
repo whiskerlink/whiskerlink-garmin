@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <drawables>
     <bitmap id="LauncherIcon" filename="launcher.png"/>
+    <bitmap id="GaugeIcon" filename="gauge.png"/>
+    <bitmap id="InformationIcon" filename="information.png"/>
+    <bitmap id="NoIcon" filename="no.png"/>
+    <bitmap id="SnowflakeIcon" filename="snowflake.png"/>
+    <bitmap id="ThermometerIcon" filename="thermometer.png"/>
+    <bitmap id="ZeroGaugeIcon" filename="zerogauge.png"/>
 </drawables>

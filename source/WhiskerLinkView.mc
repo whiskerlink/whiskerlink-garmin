@@ -1,6 +1,38 @@
+using Toybox.Application as Application;
 using Toybox.Graphics as Graphics;
 using Toybox.WatchUi as WatchUi;
 
+
+// Shared helper for custom root pages.
+// For now every page uses LauncherIcon as a placeholder.
+// Later, swap the resource here or split this into per-page resources.
+module WhiskerLinkUi {
+    function drawSubscreenIcon(dc, resourceId) {
+        var subscreen = WatchUi.getSubscreen();
+
+        if (subscreen == null) {
+            return;
+        }
+
+        var icon = Application.loadResource(resourceId);
+
+        var x = subscreen.x;
+        var y = subscreen.y;
+
+        if (x == null || y == null) {
+            return;
+        }
+
+        // Center the bitmap inside the physical Instinct subscreen.
+        x += (subscreen.width - icon.getWidth()) / 2;
+        y += (subscreen.height - icon.getHeight()) / 2;
+
+        dc.drawBitmap(x, y, icon);
+    }
+}
+
+
+// The normal probe instrument face.
 class WhiskerLinkView extends WatchUi.View {
     var _model;
 
@@ -13,10 +45,18 @@ class WhiskerLinkView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
 
-        // Left edge for the whole instrument face.
-        var x = 26;
+        // Instinct subscreen reflects actual BLE connection state.
+        WhiskerLinkUi.drawSubscreenIcon(
+            dc,
+            _model.connected
+                ? Rez.Drawables.GaugeIcon
+                : Rez.Drawables.LauncherIcon
+        );
 
-        // Small identity line.
+        // Keep everything in the upper half biased left so it never
+        // collides with the Instinct subscreen.
+        var x = 20;
+
         dc.drawText(
             x,
             16,
@@ -25,60 +65,127 @@ class WhiskerLinkView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_LEFT
         );
 
-        // During startup / reconnect, show status rather than stale values.
-        if (_model.deviceName == null) {
-            dc.drawText(
-                x,
-                56,
-                Graphics.FONT_SMALL,
-                _model.status,
-                Graphics.TEXT_JUSTIFY_LEFT
-            );
+        if (_model.pressurePsi == null) {
+            drawStatusHistory(dc, x);
             return;
         }
 
-        // Temporary hardcoded saturation temperature.
-        dc.drawText(
-            x,
-            38,
-            Graphics.FONT_MEDIUM,
-            "67\u00B0F",
-            Graphics.TEXT_JUSTIFY_LEFT
-        );
+        drawSaturation(dc, x);
 
-        // Main measurement. Number-only font gives us a MUCH larger readout.
+        // Pressure lives below the subscreen, so it can use the width.
         dc.drawText(
             x,
-            72,
+            82,
             Graphics.FONT_NUMBER_THAI_HOT,
-            pressureText(),
+            _model.pressurePsi.format("%.1f"),
             Graphics.TEXT_JUSTIFY_LEFT
         );
 
-        // Unit underneath.
         dc.drawText(
-            x,
-            133,
+            dc.getWidth() - 22,
+            112,
             Graphics.FONT_TINY,
             "psi",
-            Graphics.TEXT_JUSTIFY_LEFT
+            Graphics.TEXT_JUSTIFY_RIGHT
         );
     }
 
-    function pressureText() {
-        if (_model.deviceName == null) {
-            return "--.-";
+    function drawStatusHistory(dc, x) {
+        if (_model.statusHistory == null
+            || _model.statusHistory.size() == 0) {
+            return;
         }
 
-        var text = _model.deviceName;
+        // Newest line hugs the bottom. Older lines climb upward like
+        // terminal scrollback until they leave the display.
+        var y = dc.getHeight() - 39;
+        var lineHeight = 18;
 
-        // Current TestoDevice format:
-        // "P 12.3 psi"
-        if (text.length() > 6
-            && text.substring(0, 2).equals("P ")) {
-            return text.substring(2, text.length() - 4);
+        for (var i = _model.statusHistory.size() - 1;
+             i >= 0 && y >= 0;
+             i -= 1) {
+            dc.drawText(
+                x,
+                y,
+                Graphics.FONT_TINY,
+                _model.statusHistory[i],
+                Graphics.TEXT_JUSTIFY_LEFT
+            );
+
+            y -= lineHeight;
+        }
+    }
+
+
+    function drawSaturation(dc, x) {
+        if (_model.dewF != null && _model.bubbleF != null) {
+            dc.drawText(
+                x,
+                38,
+                Graphics.FONT_MEDIUM,
+                _model.dewF.format("%.0f") + "\u00B0F D",
+                Graphics.TEXT_JUSTIFY_LEFT
+            );
+
+            dc.drawText(
+                x,
+                59,
+                Graphics.FONT_MEDIUM,
+                _model.bubbleF.format("%.0f") + "\u00B0F B",
+                Graphics.TEXT_JUSTIFY_LEFT
+            );
+
+            return;
         }
 
-        return text;
+        if (_model.saturationF != null) {
+            dc.drawText(
+                x,
+                38,
+                Graphics.FONT_MEDIUM,
+                _model.saturationF.format("%.0f") + "\u00B0F",
+                Graphics.TEXT_JUSTIFY_LEFT
+            );
+        }
+    }
+}
+
+
+// Full-screen root card for the Refrigerant global setting.
+// The title/value deliberately live at the bottom, below the subscreen.
+class RefrigerantRootView extends WatchUi.View {
+    var _model;
+
+    function initialize(model) {
+        View.initialize();
+        _model = model;
+    }
+
+    function onUpdate(dc) {
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.clear();
+
+        WhiskerLinkUi.drawSubscreenIcon(
+            dc,
+            Rez.Drawables.SnowflakeIcon
+        );
+
+        var center = dc.getWidth() / 2;
+
+        dc.drawText(
+            center,
+            103,
+            Graphics.FONT_SMALL,
+            "Refrigerant",
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+
+        dc.drawText(
+            center,
+            128,
+            Graphics.FONT_LARGE,
+            Refrigerants.displayName(_model.selectedRefrigerant),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
     }
 }

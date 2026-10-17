@@ -64,11 +64,16 @@ class BleScanner extends Ble.BleDelegate {
         _pairing = false;
         _testo = null;
 
-        _model.status = "Scanning...";
+        _model.pushStatus("Scanning...");
+        _model.connected = false;
         _model.deviceName = null;
         _model.rssi = null;
         _model.raw = null;
         _model.serviceUuid = null;
+        _model.pressurePsi = null;
+        _model.saturationF = null;
+        _model.dewF = null;
+        _model.bubbleF = null;
 
         Ble.setDelegate(self);
         Ble.setScanState(Ble.SCAN_STATE_SCANNING);
@@ -82,7 +87,7 @@ class BleScanner extends Ble.BleDelegate {
 
     function onProfileRegister(uuid, status) {
         if (status != Ble.STATUS_SUCCESS) {
-            _model.status = "Profile err " + status;
+            _model.pushStatus("Profile err " + status);
             WatchUi.requestUpdate();
         }
     }
@@ -90,12 +95,12 @@ class BleScanner extends Ble.BleDelegate {
     function onScanStateChange(scanState, status) {
         if (status == Ble.STATUS_SUCCESS) {
             if (scanState == Ble.SCAN_STATE_SCANNING) {
-                _model.status = "Scan ON";
+                _model.pushStatus("Scan ON");
             } else if (!_pairing) {
-                _model.status = "Scan OFF";
+                _model.pushStatus("Scan OFF");
             }
         } else {
-            _model.status = "Scan err " + status;
+            _model.pushStatus("Scan err " + status);
         }
 
         WatchUi.requestUpdate();
@@ -126,7 +131,7 @@ class BleScanner extends Ble.BleDelegate {
 
         _pairing = true;
 
-        _model.status = "Testo found";
+        _model.pushStatus("Testo found");
         _model.rssi = result.getRssi();
         _model.serviceUuid = null;
         _model.raw = null;
@@ -134,14 +139,14 @@ class BleScanner extends Ble.BleDelegate {
 
         Ble.setScanState(Ble.SCAN_STATE_OFF);
 
-        _model.status = "Connecting...";
+        _model.pushStatus("Connecting...");
         WatchUi.requestUpdate();
 
         var device = Ble.pairDevice(result);
 
         if (device == null) {
             _pairing = false;
-            _model.status = "Pair failed";
+            _model.pushStatus("Pair failed");
             WatchUi.requestUpdate();
         }
     }
@@ -163,7 +168,8 @@ class BleScanner extends Ble.BleDelegate {
 
     function onConnectedStateChanged(device, state) {
         if (state == Ble.CONNECTION_STATE_CONNECTED) {
-            _model.status = "Connected";
+            _model.connected = true;
+            _model.pushStatus("Connected");
             WatchUi.requestUpdate();
 
             _testo = new TestoDevice(
@@ -182,10 +188,15 @@ class BleScanner extends Ble.BleDelegate {
             _pairing = false;
             _testo = null;
 
-            _model.status = "Disconnected";
+            _model.connected = false;
+            _model.pushStatus("Disconnected");
             _model.deviceName = null;
             _model.raw = null;
             _model.serviceUuid = null;
+            _model.pressurePsi = null;
+            _model.saturationF = null;
+            _model.dewF = null;
+            _model.bubbleF = null;
 
             WatchUi.requestUpdate();
         }

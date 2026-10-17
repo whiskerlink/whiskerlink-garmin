@@ -291,6 +291,30 @@ class TestoDevice {
         if (pressurePa != null) {
             _pressurePsi = TestoProtocol.pressurePaToPsi(pressurePa);
 
+            // Keep the numeric pressure in the shared model so the view
+            // doesn't have to scrape it back out of a display string.
+            _model.pressurePsi = _pressurePsi;
+
+            // Refrigerants.lookup() is the thermodynamics black box:
+            // pure/near-azeotropic refrigerant -> saturationF
+            // zeotropic blend -> dewF + bubbleF
+            var sat = Refrigerants.lookup(
+                _model.selectedRefrigerant,
+                _pressurePsi
+            );
+
+            _model.saturationF = null;
+            _model.dewF = null;
+            _model.bubbleF = null;
+
+            if (sat != null) {
+                _model.saturationF = sat[:saturationF];
+                _model.dewF = sat[:dewF];
+                _model.bubbleF = sat[:bubbleF];
+            }
+
+            // Keep this for now because other debug/status code may still
+            // expect deviceName to become non-null while streaming.
             _model.deviceName =
                 "P " + _pressurePsi.format("%.1f") + " psi";
         }
@@ -304,7 +328,7 @@ class TestoDevice {
         }
 
         if (pressurePa != null || battery != null) {
-            _model.status = "549i streaming";
+            _model.pushStatus("549i streaming");
             WatchUi.requestUpdate();
         }
     }
@@ -328,7 +352,7 @@ class TestoDevice {
     }
 
     function setStatus(text) {
-        _model.status = text;
+        _model.pushStatus(text);
         WatchUi.requestUpdate();
     }
 }
